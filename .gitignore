@@ -197,3 +197,4 @@ dmypy.json
 # addition ignore
 venv/**
 **/page.py
+Exercises/**
