@@ -35,7 +35,7 @@ def getWords(url):
         exit()
     soup = bs4.BeautifulSoup(request.text, 'lxml')
     span = soup.find_all('span', {'itemprop': 'name'})
-    with open(url.strip()[-2:] + '.txt', mode='w') as f:
+    with open(url.strip()[-1:] + '.txt', mode='w') as f:
         for x in span:
             f.write(x.text)
             f.write('\n')
@@ -51,7 +51,7 @@ def iteratingURLs():
         url_list = f.readlines()
     sum = 0
     for url in url_list:
-        if not os.path.exists(url.strip()[-2:] + '.txt'):
+        if not os.path.exists(url.strip()[-1:] + '.txt'):
             temp = getWords(url.strip())
             print(temp)
             sum += temp
