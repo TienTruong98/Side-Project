@@ -3,6 +3,95 @@ import requests
 import csv
 import os
 import send2trash
+import logging
+
+
+def loggingInitiate():
+    '''
+    configing the logging
+    :return: none
+    '''
+    urllib3_log = logging.getLogger("urllib3")
+    urllib3_log.setLevel(logging.CRITICAL)
+    logging.basicConfig(filename='words-list.log', level=logging.DEBUG, format='%(asctime)s: %(message)s')
+
+
+class Category:
+    def getCategoryLinkList(self):
+        '''
+        scrapping through tiki main page and search the category of items
+        :return: a dictionary includes names of the category and the relevant link samples
+        '''
+        category_link_list = []
+        category_name = []
+        try:
+            res = requests.get("https://tiki.vn/")
+            soup = bs4.BeautifulSoup(res.text, 'lxml')
+            for i in soup.find_all("a", class_='MenuItem__MenuLink-tii3xq-1 efuIbv'):
+                category_link = i['href']
+                end_pos = list(category_link).index('?') + 1
+                # get the url sample for iterating through sub page
+                category_link = category_link[:end_pos]
+                category_link_list.append(category_link)
+                # get the category's name
+                category_name.append(i.text)
+        except Exception as e:
+            print(e)
+        return dict(zip(category_name, category_link_list))
+
+    def printCategoryFile(self):
+        '''
+        creating new folder and printing out txt files contains sub page links
+        :return: none
+        '''
+        self.initiate_folder()
+        category_link_list = self.getCategoryLinkList()
+        with open('category.txt', mode='w', encoding='utf-8-sig') as category:
+            for name, link in category_link_list.items():
+                category.write(name + '\n')
+                category.write(link + '\n')
+                sub_page_link = getCategorySubPage(link)
+                with open(name + '.txt', mode='w') as file:
+                    for link in sub_page_link:
+                        file.write(link + '\n')
+
+    def initiate_folder(self):
+        '''
+        initiate_folder: will create a new folder for contain downloaded images
+        :return: none
+        '''
+        folder_status = True
+        while folder_status:
+            try:
+                folder_name = 'tiki'
+                folder_path = os.getcwd() + '\\' + folder_name
+                os.mkdir(folder_name)  # create new folder
+            except FileExistsError as f:
+                print(f)
+                # ask user whether delete the existing folder
+                while True:
+                    delete_request = input('Do you want to delete that folder: (Y/N)')
+                    if delete_request == 'Y':
+                        try:
+                            send2trash.send2trash(folder_path)
+                            os.mkdir(folder_name)
+                            os.chdir(folder_path)
+                            folder_status = False
+                            break
+                        except:
+                            # if something wrong happend obliterate the folder
+                            os.unlink(folder_path)
+                    elif delete_request == 'N':
+                        break
+                    else:
+                        print('Wrong input format')
+            except Exception as e:
+                print('Something wrong with the OS')
+                print(e)
+                print('Please try again')
+            else:
+                os.chdir(folder_path)  # change working path
+                folder_status = False
 
 
 def getItemID(soup):
@@ -65,29 +154,6 @@ def getItem(link):
     return current_page_item_link_list
 
 
-def getCategoryLinkList():
-    '''
-    scrapping through tiki main page and search the category of items
-    :return: a dictionary includes names of the category and the relevant link samples
-    '''
-    category_link_list = []
-    category_name = []
-    try:
-        res = requests.get("https://tiki.vn/")
-        soup = bs4.BeautifulSoup(res.text, 'lxml')
-        for i in soup.find_all("a", class_='MenuItem__MenuLink-tii3xq-1 efuIbv'):
-            category_link = i['href']
-            end_pos = list(category_link).index('?') + 1
-            # get the url sample for iterating through sub page
-            category_link = category_link[:end_pos]
-            category_link_list.append(category_link)
-            # get the category's name
-            category_name.append(i.text)
-    except Exception as e:
-        print(e)
-    return dict(zip(category_name, category_link_list))
-
-
 def checkEnd(link):
     '''
     checking whether the page still the 'next page' button
@@ -137,74 +203,21 @@ def getCategorySubPage(link):
     return sub_page_link_list
 
 
-def printCategoryFile():
-    '''
-    creating new folder and printing out txt files contains sub page links
-    :return: none
-    '''
-    initiate_folder()
-    category_link_list = getCategoryLinkList()
-    with open('category.txt', mode='w', encoding='utf-8-sig') as category:
-        for name, link in category_link_list.items():
-            category.write(name + '\n')
-            category.write(link + '\n')
-            sub_page_link = getCategorySubPage(link)
-            with open(name + '.txt', mode='w') as file:
-                for link in sub_page_link:
-                    file.write(link + '\n')
-
-
-def initiate_folder():
-    '''
-    initiate_folder: will create a new folder for contain downloaded images
-    :return: none
-    '''
-    folder_status = True
-    while folder_status:
-        try:
-            folder_name = 'tiki'
-            folder_path = os.getcwd() + '\\' + folder_name
-            os.mkdir(folder_name)  # create new folder
-        except FileExistsError as f:
-            print(f)
-            # ask user whether delete the existing folder
-            while True:
-                delete_request = input('Do you want to delete that folder: (Y/N)')
-                if delete_request == 'Y':
-                    try:
-                        send2trash.send2trash(folder_path)
-                        os.mkdir(folder_name)
-                        os.chdir(folder_path)
-                        folder_status = False
-                        break
-                    except:
-                        # if something wrong happend obliterate the folder
-                        os.unlink(folder_path)
-                elif delete_request == 'N':
-                    break
-                else:
-                    print('Wrong input format')
-        except Exception as e:
-            print('Something wrong with the OS')
-            print(e)
-            print('Please try again')
-        else:
-            os.chdir(folder_path)  # change working path
-            folder_status = False
-
 def getFileName():
-    with open('./tiki/category.txt', mode='r',encoding='utf-8-sig') as file:
+    with open('./tiki/category.txt', mode='r', encoding='utf-8-sig') as file:
         lines = file.readlines()
     category_name = []
     for i in range(0, len(lines), 2):
         category_name.append(lines[i].strip())
     return category_name
+
+
 def createCSV():
     category_name = getFileName()
     for name in category_name:
-        with open('./tiki/'+name+'.txt', mode='r') as file:
+        with open('./tiki/' + name + '.txt', mode='r') as file:
             links = file.readlines()
-        with open(name+'.csv', mode='w', newline='', encoding='utf-8-sig') as file_w:
+        with open(name + '.csv', mode='w', newline='', encoding='utf-8-sig') as file_w:
             for link in links:
                 print(link)
                 list = getItem(link.strip())
@@ -215,4 +228,4 @@ def createCSV():
 
 
 if __name__ == '__main__':
-    createCSV()
+    pass
