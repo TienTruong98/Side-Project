@@ -13,7 +13,7 @@ def loggingInitiate():
     '''
     urllib3_log = logging.getLogger("urllib3")
     urllib3_log.setLevel(logging.CRITICAL)
-    logging.basicConfig(filename='words-list.log', level=logging.DEBUG, format='%(asctime)s: %(message)s')
+    logging.basicConfig(filename='tiki.log', level=logging.DEBUG, format='%(asctime)s: %(message)s')
 
 
 class Category:
@@ -36,7 +36,8 @@ class Category:
                 # get the category's name
                 category_name.append(i.text)
         except Exception as e:
-            print(e)
+            logging.exception(e)
+        logging.debug('Finished get Category link list')
         return dict(zip(category_name, category_link_list))
 
     def printCategoryFile(self):
@@ -228,4 +229,6 @@ def createCSV():
 
 
 if __name__ == '__main__':
-    pass
+    loggingInitiate()
+    a = Category()
+    a.getCategoryLinkList()
