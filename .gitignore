@@ -198,5 +198,6 @@ dmypy.json
 venv/**
 **/page.py
 Exercises/**
-*.txt
-*.log
+**/*.txt
+**/*.log
+
