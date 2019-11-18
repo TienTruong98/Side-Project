@@ -1,9 +1,8 @@
 import bs4
 import requests
 import csv
-import os
-import send2trash
 import logging
+import pymongo
 
 
 def loggingInitiate():
@@ -17,7 +16,8 @@ def loggingInitiate():
 
 
 class Category:
-    def getCategoryLinkList(self):
+    @staticmethod
+    def getCategoryLinkList():
         '''
         scrapping through tiki main page and search the category of items
         :return: a dictionary includes names of the category and the relevant link samples
@@ -38,58 +38,17 @@ class Category:
         except Exception as e:
             logging.exception(e)
         logging.debug('Finished get Category link list')
-        return dict(zip(category_name, category_link_list))
-
-    def printCategoryFile(self):
-        '''
-        creating new folder and printing out txt files contains sub page links
-        :return: none
-        '''
-        self.initiate_folder()
-        category_link_list = self.getCategoryLinkList()
-        with open('category.txt', mode='w', encoding='utf-8-sig') as category:
-            for name, link in category_link_list.items():
-                category.write(name + '\n')
-                category.write(link + '\n')
-                sub_page_link = getCategorySubPage(link)
-                with open(name + '.txt', mode='w') as file:
-                    for link in sub_page_link:
-                        file.write(link + '\n')
-
-    def initiateFolder(self):
-        def deleteFolder():
-            '''
-            delete folder
-            :return:
-            '''
-            # ask user whether delete the existing folder
-            while True:
-                delete_request = input('Do you want to delete that folder: (Y/N)')
-                if delete_request == 'Y':
-                    try:
-                        send2trash.send2trash(folder_path)
-                        break
-                    except Exception:
-                        logging.exception(Exception)
-                elif delete_request == 'N':
-                    break
-                else:
-                    print('Wrong input format')
-
-        '''
-        initiate_folder: will create a new folder for contain downloaded images
-        :return: none
-        '''
-        folder_name = 'tiki'
-        folder_path = os.getcwd() + '\\' + folder_name
-        if os.path.isdir(folder_path):
-            print('The {} folder is already exist'.format(folder_name))
-            deleteFolder()
-        try:
-            os.mkdir(folder_name)
-            os.chdir(folder_path)
-        except Exception:
-            logging.exception(Exception)
+        return [{'name':x, 'link':y} for x,y in zip(category_name,category_link_list)]
+    @staticmethod
+    def loadDatabase():
+        client = pymongo.MongoClient('localhost', 27017)
+        database = client['Tiki']
+        colection = database['Category link list']
+        list = Category.getCategoryLinkList()
+        for x in list:
+            if colection.find_one(x) is None:
+                colection.insert_one(x)
+        logging.debug('Finished scrapping category link list')
 
 
 def getItemID(soup):
