@@ -56,43 +56,40 @@ class Category:
                     for link in sub_page_link:
                         file.write(link + '\n')
 
-    def initiate_folder(self):
+    def initiateFolder(self):
+        def deleteFolder():
+            '''
+            delete folder
+            :return:
+            '''
+            # ask user whether delete the existing folder
+            while True:
+                delete_request = input('Do you want to delete that folder: (Y/N)')
+                if delete_request == 'Y':
+                    try:
+                        send2trash.send2trash(folder_path)
+                        break
+                    except Exception:
+                        logging.exception(Exception)
+                elif delete_request == 'N':
+                    break
+                else:
+                    print('Wrong input format')
+
         '''
         initiate_folder: will create a new folder for contain downloaded images
         :return: none
         '''
-        folder_status = True
-        while folder_status:
-            try:
-                folder_name = 'tiki'
-                folder_path = os.getcwd() + '\\' + folder_name
-                os.mkdir(folder_name)  # create new folder
-            except FileExistsError as f:
-                print(f)
-                # ask user whether delete the existing folder
-                while True:
-                    delete_request = input('Do you want to delete that folder: (Y/N)')
-                    if delete_request == 'Y':
-                        try:
-                            send2trash.send2trash(folder_path)
-                            os.mkdir(folder_name)
-                            os.chdir(folder_path)
-                            folder_status = False
-                            break
-                        except:
-                            # if something wrong happend obliterate the folder
-                            os.unlink(folder_path)
-                    elif delete_request == 'N':
-                        break
-                    else:
-                        print('Wrong input format')
-            except Exception as e:
-                print('Something wrong with the OS')
-                print(e)
-                print('Please try again')
-            else:
-                os.chdir(folder_path)  # change working path
-                folder_status = False
+        folder_name = 'tiki'
+        folder_path = os.getcwd() + '\\' + folder_name
+        if os.path.isdir(folder_path):
+            print('The {} folder is already exist'.format(folder_name))
+            deleteFolder()
+        try:
+            os.mkdir(folder_name)
+            os.chdir(folder_path)
+        except Exception:
+            logging.exception(Exception)
 
 
 def getItemID(soup):
