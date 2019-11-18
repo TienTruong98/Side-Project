@@ -3,6 +3,7 @@ import requests
 import csv
 import logging
 import pymongo
+import pymongo.errors
 
 
 def loggingInitiate():
@@ -35,20 +36,32 @@ class Category:
                 category_link_list.append(category_link)
                 # get the category's name
                 category_name.append(i.text)
-        except Exception as e:
-            logging.exception(e)
+        except Exception:
+            print(Exception)
+            logging.exception(Exception)
         logging.debug('Finished get Category link list')
-        return [{'name':x, 'link':y} for x,y in zip(category_name,category_link_list)]
+        return [{'name': x, 'link': y} for x, y in zip(category_name, category_link_list)]
+
     @staticmethod
     def loadDatabase():
-        client = pymongo.MongoClient('localhost', 27017)
-        database = client['Tiki']
-        colection = database['Category link list']
-        list = Category.getCategoryLinkList()
-        for x in list:
-            if colection.find_one(x) is None:
-                colection.insert_one(x)
-        logging.debug('Finished scrapping category link list')
+        '''
+        load the list onto 'Category link list' collection in 'Tiki' database
+        :return:
+        '''
+        try:
+            client = pymongo.MongoClient('localhost', 27017)
+            database = client['Tiki']
+            col = database['Category link list']
+            list = Category.getCategoryLinkList()
+            try:
+                for x in list:
+                    if col.find_one(x) == None:
+                        col.insert_one(x)
+            except pymongo.errors.PyMongoError as e:
+                print(e)
+        except pymongo.errors.PyMongoError as e:
+            pass
+        logging.debug("Finished scrapping category link onto 'Category link list' collection in 'Tiki' database")
 
 
 def getItemID(soup):
@@ -185,6 +198,4 @@ def createCSV():
 
 
 if __name__ == '__main__':
-    loggingInitiate()
-    a = Category()
-    a.getCategoryLinkList()
+    Category.loadDatabase()
