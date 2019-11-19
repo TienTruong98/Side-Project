@@ -13,7 +13,7 @@ def loggingInitiate():
     '''
     urllib3_log = logging.getLogger("urllib3")
     urllib3_log.setLevel(logging.CRITICAL)
-    logging.basicConfig(filename='tiki.log', level=logging.DEBUG, format='%(asctime)s: %(message)s')
+    logging.basicConfig(filename='tiki.log', level=logging.DEBUG, format='%(levelname)s:%(asctime)s: %(message)s')
 
 
 class Category:
@@ -53,15 +53,12 @@ class Category:
             database = client['Tiki']
             col = database['Category link list']
             list = Category.getCategoryLinkList()
-            try:
-                for x in list:
-                    if col.find_one(x) == None:
-                        col.insert_one(x)
-            except pymongo.errors.PyMongoError as e:
-                print(e)
+            for x in list:
+                if col.find_one(x) == None:
+                    col.insert_one(x)
+            logging.debug("Finished scrapping category link onto 'Category link list' collection in 'Tiki' database")
         except pymongo.errors.PyMongoError as e:
-            pass
-        logging.debug("Finished scrapping category link onto 'Category link list' collection in 'Tiki' database")
+            logging.exception(e)
 
 
 def getItemID(soup):
@@ -198,4 +195,5 @@ def createCSV():
 
 
 if __name__ == '__main__':
+    loggingInitiate()
     Category.loadDatabase()
