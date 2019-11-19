@@ -3,7 +3,7 @@ import requests
 import csv
 import logging
 import pymongo
-import pymongo.errors
+import time
 
 
 def loggingInitiate():
@@ -13,7 +13,42 @@ def loggingInitiate():
     '''
     urllib3_log = logging.getLogger("urllib3")
     urllib3_log.setLevel(logging.CRITICAL)
-    logging.basicConfig(filename='tiki.log', level=logging.DEBUG, format='%(levelname)s:%(asctime)s: %(message)s')
+    logging.basicConfig(handlers=[logging.FileHandler('tiki.log', encoding='utf-8')], level=logging.DEBUG,
+                        format='%(levelname)s:%(asctime)s: %(message)s')
+
+
+class DataPipeline:
+    database_name = 'Tiki'
+    client = pymongo.MongoClient('localhost', 27017)
+    database = client[database_name]
+
+    @classmethod
+    def importData(self, collection_name):
+        try:
+            collection = DataPipeline.database[collection_name]
+            logging.debug('Export data from collection "{}"'.format(collection_name))
+            return collection.find()
+        except Exception:
+            logging.exception(Exception)
+
+    @classmethod
+    def exportData(self, collection_name, data):
+        try:
+            collection = DataPipeline.database[collection_name]
+            for x in data:
+                if collection.find_one({'link': {"$eq": x['link']}}) == None:
+                    collection.insert_one(x)
+            logging.debug('Import data to collection "{}"'.format(collection_name))
+        except Exception:
+            logging.exception(Exception)
+
+    @classmethod
+    def updateStatus(self, collection_name, document_name, status):
+        try:
+            collection = DataPipeline.database[collection_name]
+            collection.update_one({'name': document_name}, {'$set': {"status": status}})
+        except Exception:
+            logging.exception(Exception)
 
 
 class Category:
@@ -25,6 +60,7 @@ class Category:
         '''
         category_link_list = []
         category_name = []
+        print('Getting category link.....')
         try:
             res = requests.get("https://tiki.vn/")
             soup = bs4.BeautifulSoup(res.text, 'lxml')
@@ -39,26 +75,75 @@ class Category:
         except Exception:
             print(Exception)
             logging.exception(Exception)
-        logging.debug('Finished get Category link list')
-        return [{'name': x, 'link': y} for x, y in zip(category_name, category_link_list)]
+        logging.debug('Finished getting Category link list')
+        print('Finished getting Category link list')
+        return [{'name': x, 'link': y, 'status': True} for x, y in zip(category_name, category_link_list)]
+
+
+class SubCategory:
 
     @staticmethod
-    def loadDatabase():
+    def checkEnd(link):
         '''
-        load the list onto 'Category link list' collection in 'Tiki' database
-        :return:
+        checking whether the page still the 'next page' button
+        :param link: the page's url
+        :return: True: if doesn't has the button
+                 False: if has the button or something goes wrong
         '''
         try:
-            client = pymongo.MongoClient('localhost', 27017)
-            database = client['Tiki']
-            col = database['Category link list']
-            list = Category.getCategoryLinkList()
-            for x in list:
-                if col.find_one(x) == None:
-                    col.insert_one(x)
-            logging.debug("Finished scrapping category link onto 'Category link list' collection in 'Tiki' database")
-        except pymongo.errors.PyMongoError as e:
-            logging.exception(e)
+            res = requests.get(link)
+            soup = bs4.BeautifulSoup(res.text, 'lxml')
+            # find the 'next page' button
+            if soup.find('a', class_="next") is None:
+                return True
+            else:
+                return False
+        except Exception:
+            logging.exception(Exception)
+            return False
+
+    @staticmethod
+    def getCategorySubPage(name, link):
+        '''
+        getting all pages containing items of the category
+        using the hopping method to iterate through pages
+        :param link: the category url sample
+        :return: list of all category sub page
+        '''
+        print('Getting sub category of {}...'.format(name))
+        count = 0
+        sub_page_link_list = []
+        k = 100
+        # find the last page that still contains items
+        while True:
+            new_count = count + k
+            new_link = link + 'page=' + str(new_count)
+            check = SubCategory.checkEnd(new_link)
+            if check and k == 1:
+                count = new_count
+                break
+            if check:
+                k = k // 10
+            else:
+                count = new_count
+        # generate all the sub pages
+        for i in range(1, count + 1):
+            new_link = link + 'page=' + str(i)
+            sub_page_link_list.append({'name': name, 'page': i, 'link': new_link})
+        print('Finished getting sub category of {}'.format(name))
+        return sub_page_link_list
+
+    @staticmethod
+    def iteratingCategoryLinks():
+        for x in DataPipeline.importData('Category links'):
+            if x['status']:
+                DataPipeline.exportData('Sub links', SubCategory.getCategorySubPage(x['name'], x['link']))
+                logging.info('Finished scraping "{}"'.format(x['name']))
+                DataPipeline.updateStatus('Category links', x['name'], False)
+            else:
+                print('"{}" is already exist'.format(x['name']))
+                logging.info('"{}" is already exist'.format(x['name']))
+        logging.info('Finished scrapping sub category links')
 
 
 def getItemID(soup):
@@ -121,55 +206,6 @@ def getItem(link):
     return current_page_item_link_list
 
 
-def checkEnd(link):
-    '''
-    checking whether the page still the 'next page' button
-    :param link: the page's url
-    :return: True: if doesn't has the button
-             False: if has the button or something goes wrong
-    '''
-    try:
-        res = requests.get(link)
-        soup = bs4.BeautifulSoup(res.text, 'lxml')
-        # find the 'next page' button
-        if soup.find('a', class_="next") is None:
-            return True
-        else:
-            return False
-    except Exception as e:
-        print(e)
-        return False
-
-
-def getCategorySubPage(link):
-    '''
-    getting all pages containing items of the category
-    using the hopping method to iterate through pages
-    :param link: the category url sample
-    :return: list of all category sub page
-    '''
-    count = 0
-    sub_page_link_list = []
-    k = 100
-    # find the last page that still contains items
-    while True:
-        new_count = count + k
-        new_link = link + 'page=' + str(new_count)
-        check = checkEnd(new_link)
-        if check and k == 1:
-            count = new_count
-            break
-        if check:
-            k = k // 10
-        else:
-            count = new_count
-    # generate all the sub pages
-    for i in range(1, count + 1):
-        new_link = link + 'page=' + str(i)
-        sub_page_link_list.append(new_link)
-    return sub_page_link_list
-
-
 def getFileName():
     with open('./tiki/category.txt', mode='r', encoding='utf-8-sig') as file:
         lines = file.readlines()
@@ -195,5 +231,9 @@ def createCSV():
 
 
 if __name__ == '__main__':
+    t1 = time.time()
     loggingInitiate()
-    Category.loadDatabase()
+    DataPipeline.exportData('Category links', Category.getCategoryLinkList())
+    SubCategory.iteratingCategoryLinks()
+    t2 = time.time()
+    print(t2 - t1)
