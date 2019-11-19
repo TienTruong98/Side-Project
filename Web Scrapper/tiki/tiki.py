@@ -43,10 +43,10 @@ class DataPipeline:
             logging.exception(Exception)
 
     @classmethod
-    def updateStatus(self, collection_name, document_name, status):
+    def updateStatus(self, collection_name, document_link, status):
         try:
             collection = DataPipeline.database[collection_name]
-            collection.update_one({'name': document_name}, {'$set': {"status": status}})
+            collection.update_one({'link': document_link}, {'$set': {"status": status}})
         except Exception:
             logging.exception(Exception)
 
@@ -129,7 +129,7 @@ class SubCategory:
         # generate all the sub pages
         for i in range(1, count + 1):
             new_link = link + 'page=' + str(i)
-            sub_page_link_list.append({'name': name, 'page': i, 'link': new_link})
+            sub_page_link_list.append({'name': name, 'page': i, 'link': new_link, 'status':True})
         print('Finished getting sub category of {}'.format(name))
         return sub_page_link_list
 
@@ -139,7 +139,7 @@ class SubCategory:
             if x['status']:
                 DataPipeline.exportData('Sub links', SubCategory.getCategorySubPage(x['name'], x['link']))
                 logging.info('Finished scraping "{}"'.format(x['name']))
-                DataPipeline.updateStatus('Category links', x['name'], False)
+                DataPipeline.updateStatus('Category links', x['link'], False)
             else:
                 print('"{}" is already exist'.format(x['name']))
                 logging.info('"{}" is already exist'.format(x['name']))
@@ -233,7 +233,7 @@ def createCSV():
 if __name__ == '__main__':
     t1 = time.time()
     loggingInitiate()
-    DataPipeline.exportData('Category links', Category.getCategoryLinkList())
+    DataPipeline.exportData('Category links',Category.getCategoryLinkList())
     SubCategory.iteratingCategoryLinks()
     t2 = time.time()
     print(t2 - t1)
