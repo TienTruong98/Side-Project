@@ -19,6 +19,7 @@ class NoDaemonProcess(multiprocessing.Process):
 class MyPool(multiprocessing.pool.Pool):
     Process = NoDaemonProcess
 
+
 class ItemScrapper:
     '''
     Scrap flow:
@@ -26,6 +27,7 @@ class ItemScrapper:
         2. Enter the item source page and scrap the item info
     '''
     max_attemp = 5
+
     @staticmethod
     def getItemInfo(url):
         '''
@@ -58,6 +60,7 @@ class ItemScrapper:
             except Exception as e:
                 attempt += 1
         return {'name': None, 'price': None, 'rating': None, 'url': url}
+
     @staticmethod
     def getItemUrls(url):
         '''
@@ -74,6 +77,7 @@ class ItemScrapper:
             return item_url_list
         except:
             pass
+
     @staticmethod
     def scrapItemInfo(url):
         '''
@@ -81,6 +85,7 @@ class ItemScrapper:
         :param url: the URL of a display menu page
         :return: item_info: list of items information
         '''
+        print('Getting items from {}...'.format(url))
         url_list = ItemScrapper.getItemUrls(url)
         item_info = []
         try:
@@ -91,19 +96,94 @@ class ItemScrapper:
         except Exception as e:
             print(e)
         return item_info
+
     @staticmethod
-    def crawlPage(url):
+    def crawlPage(url_list):
         '''
         crawl and scrap items information from a list of URLs
         :param url: list of URLs
         :return: info: items information
         '''
         p = MyPool()
-        info = p.map(ItemScrapper.scrapItemInfo, url)
+        info = p.map(ItemScrapper.scrapItemInfo, url_list)
         p.close()
         p.join()
         return info
 
+
+class Category:
+    @staticmethod
+    def getSubCategory(data_tuple):
+        '''
+        get the sub-categories of a sub-category
+        if the sub-category is the a leaf then store the sub-category data (name, quantity, link) to queue
+                                               return []
+        else return sub_list
+        :param data_tuple: (url, queue)
+                            url: sub-category page
+                            queue: data queue
+        :return: sub-list: list of sub-category
+        '''
+        url = data_tuple[0]
+        queue = data_tuple[1]
+        try:
+            print('Getting {}...'.format(url))
+            current_url = url
+            response = requests.get(url, allow_redirects=False)
+            # check for redirect page
+            if response.status_code != 200:
+                current_url = 'https' + response.headers['Location'][4:]  # get the right HTTP protocol
+                response = requests.get(url, allow_redirects=True)
+            soup = bs4.BeautifulSoup(response.text, 'lxml')
+            # get information
+            sub_list = ['https://tiki.vn' + x['href'] for x in soup.select('.is-child a')]
+            name = soup.select_one('h1').text.strip()
+            # quantity = int(''.join(x for x in soup.select_one('.filter-list-box h4').text.strip() if x in '012345679'))
+
+            response.close()
+            soup.decompose()
+            # check if sub-category ends or not
+            if len(sub_list) == 0 or sub_list[0] == current_url:
+                queue.put({'name': name, 'quantity': 0, 'link': url})
+                return []
+            else:
+                return sub_list
+        except Exception as e:
+            print('Exception {}'.format(url))
+            print(e)
+            return []
+
+    @staticmethod
+    def traverseCategoryTree(url_list, queue):
+        '''
+        recursively crawling through the category tree and get the leaf
+        :param url_list: list of node url
+               queue: data queue to store leaf
+        :return:
+        '''
+        if len(url_list) != 0:
+            pool = MyPool()
+            result = pool.map(Category.getSubCategory, [(x, queue) for x in url_list])
+            sub_categories = []
+            for sub_category in result:
+                sub_categories.extend(sub_category)
+            pool.close()
+            pool.join()
+            Category.traverseCategoryTree(sub_categories, queue)
+
+    @staticmethod
+    def getLeafCategory(url_list):
+        '''
+        get leaf categories of a page
+        :param url_list: list of url page need to find leaf category
+        :return: leaf_category_list: infomation of leaf categories
+        '''
+        queue = multiprocessing.Manager().Queue()
+        Category.traverseCategoryTree(url_list, queue)
+        leaf_category_list = []
+        while not queue.empty():
+            leaf_category_list.append(queue.get())
+        return leaf_category_list
 
 
 if __name__ == "__main__":
@@ -115,12 +195,8 @@ if __name__ == "__main__":
         'https://tiki.vn/dien-thoai-smartphone/c1795?src=tree',
         'https://tiki.vn/dien-thoai-ban/c8061?src=tree'
     ]
-    result = ItemScrapper.crawlPage(url)
-    i = 0
+    result = Category.getLeafCategory(url)
     for x in result:
-        for y in x:
-            print(y)
-            i += 1
+        print(x)
     t2 = time.time()
-    print(i)
     print(t2 - t1)
