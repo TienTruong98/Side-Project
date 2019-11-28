@@ -126,7 +126,7 @@ class ItemScrapper:
         return item_info
 
     @staticmethod
-    def crawlPage(url_list):
+    def main(url_list):
         '''
         crawl and scrap items information from a list of URLs
         :param url: list of URLs
@@ -170,18 +170,19 @@ class Category:
             # get information
             sub_list = ['https://tiki.vn' + x['href'] for x in soup.select('.is-child a')]
             name = soup.select_one('h1').text.strip()
-            # quantity = int(''.join(x for x in soup.select_one('.filter-list-box h4').text.strip() if x in '012345679'))
+            quantity = int(soup.select_one('.filter-list-box h4').text.strip()[:-8])
 
             response.close()
             soup.decompose()
             # check if sub-category ends or not
             if len(sub_list) == 0 or sub_list[0] == current_url:
-                queue.put({'name': name, 'quantity': 0, 'link': url})
+                queue.put({'name': name, 'quantity': quantity, 'link': url})
                 return []
             else:
                 return sub_list
         except Exception as e:
-            print('Exception {}'.format(url))
+            error.logger.exception('Exception occur at: ' + url)
+            error.logger.exception(e)
             print(e)
             return []
 
@@ -204,7 +205,7 @@ class Category:
             Category.traverseCategoryTree(sub_categories, queue)
 
     @staticmethod
-    def getLeafCategory(url_list):
+    def main(url_list):
         '''
         get leaf categories of a page
         :param url_list: list of url page need to find leaf category
@@ -215,6 +216,7 @@ class Category:
         leaf_category_list = []
         while not queue.empty():
             leaf_category_list.append(queue.get())
+        complete.logger.debug('Complete getting leaf-categories')
         return leaf_category_list
 
 
@@ -230,7 +232,7 @@ if __name__ == "__main__":
         'https://tiki.vn/dien-thoai-smartphone/c1795?src=tree',
         'https://tiki.vn/dien-thoai-ban/c8061?src=tree'
     ]
-    result = ItemScrapper.crawlPage(url)
+    result = Category.getLeafCategory(url)
     for x in result:
         print(x)
     t2 = time.time()
