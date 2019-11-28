@@ -4,6 +4,7 @@ import time
 import multiprocessing
 import multiprocessing.pool
 import re
+import logging
 
 
 class NoDaemonProcess(multiprocessing.Process):
@@ -18,6 +19,24 @@ class NoDaemonProcess(multiprocessing.Process):
 
 class MyPool(multiprocessing.pool.Pool):
     Process = NoDaemonProcess
+
+
+class Logger:
+    def __init__(self, name, log_file, level=logging.INFO):
+        self.name = name
+        self.log_file = log_file
+        self.level = level
+
+        urllib3_log = logging.getLogger("urllib3")
+        urllib3_log.setLevel(logging.CRITICAL)
+
+        formatter = logging.Formatter('%(levelname)s:%(asctime)s: %(message)s')
+        handler = logging.FileHandler(self.log_file, encoding='utf-8')
+        handler.setFormatter(formatter)
+
+        self.logger = logging.getLogger(self.name)
+        self.logger.setLevel(self.level)
+        self.logger.addHandler(handler)
 
 
 class ItemScrapper:
@@ -43,6 +62,7 @@ class ItemScrapper:
                 # check redirect url
                 if int(response.headers['Content-Length']) < 1000:
                     # find the redirect url
+                    error.logger.info('Redirect: ' + url)
                     regex = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
                     redirect_url = soup.find_all('script')[0].text
                     redirect_url = re.findall(regex, redirect_url)[0]
@@ -56,9 +76,12 @@ class ItemScrapper:
 
                 response.close()
                 soup.decompose()
+                complete.logger.info('Complete getting item: ' + name)
                 return {'name': name, 'price': price, 'rating': rating, 'url': url}
             except Exception as e:
+                error.logger.exception(e)
                 attempt += 1
+        missing.logger.info('Missing item: ' + url)
         return {'name': None, 'price': None, 'rating': None, 'url': url}
 
     @staticmethod
@@ -75,8 +98,10 @@ class ItemScrapper:
             soup.decompose()
             response.close()
             return item_url_list
-        except:
-            pass
+        except Exception as e:
+            print(e)
+            error.logger.exception(e)
+            return []
 
     @staticmethod
     def scrapItemInfo(url):
@@ -93,8 +118,11 @@ class ItemScrapper:
             item_info = pool.map(ItemScrapper.getItemInfo, url_list)
             pool.close()
             pool.join()
+            complete.logger.debug('Complete get page: ' + url)
         except Exception as e:
             print(e)
+            error.logger.exception(e)
+            missing.logger.debug('Missing page: ' + url)
         return item_info
 
     @staticmethod
@@ -104,11 +132,15 @@ class ItemScrapper:
         :param url: list of URLs
         :return: info: items information
         '''
-        p = MyPool()
-        info = p.map(ItemScrapper.scrapItemInfo, url_list)
-        p.close()
-        p.join()
-        return info
+        try:
+            p = MyPool()
+            info = p.map(ItemScrapper.scrapItemInfo, url_list)
+            p.close()
+            p.join()
+            return info
+        except Exception as e:
+            print(e)
+            error.logger.exception(e)
 
 
 class Category:
@@ -186,6 +218,9 @@ class Category:
         return leaf_category_list
 
 
+error = Logger('error', 'error.log')
+missing = Logger('missing', 'missing.log')
+complete = Logger('complete', 'complete.log', logging.DEBUG)
 if __name__ == "__main__":
     t1 = time.time()
     url = [
@@ -195,7 +230,7 @@ if __name__ == "__main__":
         'https://tiki.vn/dien-thoai-smartphone/c1795?src=tree',
         'https://tiki.vn/dien-thoai-ban/c8061?src=tree'
     ]
-    result = Category.getLeafCategory(url)
+    result = ItemScrapper.crawlPage(url)
     for x in result:
         print(x)
     t2 = time.time()
