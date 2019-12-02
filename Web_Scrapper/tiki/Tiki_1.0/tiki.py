@@ -223,6 +223,7 @@ class Item:
                 items_info_list.append(item_information)
         except Exception as e:
             print(e)
+            logging.exception(e)
         return items_info_list
 
     @staticmethod

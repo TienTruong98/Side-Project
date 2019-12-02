@@ -1,0 +1,7 @@
+next_page:
+    css: 'li.a-last a'
+    type: Link
+Item:
+    css: a.a-link-normal.a-text-normal
+    multiple: true
+    type: Link
