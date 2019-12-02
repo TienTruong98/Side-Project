@@ -1,8 +1,0 @@
-name:
-    css: .s-line-clamp-2
-    multiple: true
-    type: Text
-price:
-    css: .a-price-whole
-    multiple: true
-    type: Text

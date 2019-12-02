@@ -1,9 +1,0 @@
-Accessories_Supplies:
-    css: 'ul.hmenu.hmenu-visible li:nth-of-type(3) a.hmenu-item'
-    type: Link
-Camera_Photo:
-    css: 'ul.hmenu.hmenu-visible li:nth-of-type(4) a.hmenu-item'
-    type: Link
-Car:
-    css: 'ul.hmenu.hmenu-visible li:nth-of-type(5) a.hmenu-item'
-    type: Link
