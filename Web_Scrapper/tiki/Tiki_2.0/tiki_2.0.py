@@ -96,15 +96,18 @@ class ItemScrapper:
                 response = requests.get(url)
                 soup = bs4.BeautifulSoup(response.text, 'lxml')
                 # check redirect url
-                if int(response.headers['Content-Length']) < 1000:
-                    # find the redirect url
-                    error.logger.info('Redirect: ' + url)
-                    regex = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
-                    redirect_url = soup.find_all('script')[0].text
-                    redirect_url = re.findall(regex, redirect_url)[0]
-                    # change the request to the redirect URL
-                    response = requests.get(redirect_url)
-                    soup = bs4.BeautifulSoup(response.text, 'lxml')
+                try:
+                    if int(response.headers['Content-Length']) < 1000:
+                        # find the redirect url
+                        error.logger.info('Redirect: ' + url)
+                        regex = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+                        redirect_url = soup.find_all('script')[0].text
+                        redirect_url = re.findall(regex, redirect_url)[0]
+                        # change the request to the redirect URL
+                        response = requests.get(redirect_url)
+                        soup = bs4.BeautifulSoup(response.text, 'lxml')
+                except:
+                    pass
 
                 name = soup.select_one('.icon-tikinow-26+ span').text
                 price = soup.select_one('#span-price').text
@@ -184,9 +187,10 @@ class ItemScrapper:
                     p = MyPool()
                     result = p.map(ItemScrapper.scrapItemInfo, batch)
                     for x in result:
-                        DataPipeline.exportData('Item', x)
+                        DataPipeline.exportData('Item',x)
                 except Exception as e:
                     error.logger.exception(e)
+
                 for x in batch:
                     try:
                         end_page = next(i for i in last_page if i['link'] == x)
