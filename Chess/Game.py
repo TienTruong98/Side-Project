@@ -12,18 +12,21 @@ class Game:
         self.player_moving = False
 
     def setUp(self):
+        # set up the fucking board
         colors = {'white': [1, 2], 'black': [8, 7]}
         for color, rows in colors.items():
-            self.board.setOccupant('A', rows[0], Pieces.Rook(color, 'A', rows[0]))
-            self.board.setOccupant('B', rows[0], Pieces.Knight(color, 'B', rows[0]))
-            self.board.setOccupant('C', rows[0], Pieces.Bishop(color, 'C', rows[0]))
-            self.board.setOccupant('D', rows[0], Pieces.King(color, 'D', rows[0]))
-            self.board.setOccupant('E', rows[0], Pieces.Queen(color, 'E', rows[0]))
-            self.board.setOccupant('F', rows[0], Pieces.Bishop(color, 'F', rows[0]))
-            self.board.setOccupant('G', rows[0], Pieces.Knight(color, 'G', rows[0]))
-            self.board.setOccupant('H', rows[0], Pieces.Rook(color, 'H', rows[0]))
+            self.board.setOccupant(('A', rows[0]), Pieces.Rook(color, 'A', rows[0]))
+            self.board.setOccupant(('B', rows[0]), Pieces.Knight(color, 'B', rows[0]))
+            self.board.setOccupant(('C', rows[0]), Pieces.Bishop(color, 'C', rows[0]))
+            self.board.setOccupant(('F', rows[0]), Pieces.Bishop(color, 'F', rows[0]))
+            self.board.setOccupant(('G', rows[0]), Pieces.Knight(color, 'G', rows[0]))
+            self.board.setOccupant(('H', rows[0]), Pieces.Rook(color, 'H', rows[0]))
             for x in self.board.X_axis:
-                self.board.setOccupant(x, rows[1], Pieces.Pawn(color, x, rows[0]))
+                self.board.setOccupant((x, rows[1]), Pieces.Pawn(color, x, rows[1]))
+        self.board.setOccupant(('D', 1), Pieces.King('white', 'D', 1))
+        self.board.setOccupant(('E', 1), Pieces.Queen('white', 'E', 1))
+        self.board.setOccupant(('D', 8), Pieces.Queen('black', 'D', 8))
+        self.board.setOccupant(('E', 8), Pieces.King('black', 'E', 8))
 
     def change_turn(self):
         if self.turn == 'white':
@@ -31,21 +34,26 @@ class Game:
         else:
             self.turn = 'white'
 
-    def select(self, pos):
-        selected_square = self.board.getSquare(pos)
+    def select(self, screen_pos):
+        selected_square = self.board.getSquare(screen_pos)
         if selected_square is not None:
             # DROP
             # if the player is moving and press mouse then move the selected piece to new square
             if self.player_moving:
                 old_square = self.board.findSelectedSqure()
                 old_square.being_clicked = False
-
-                # check if the player select again
-                if old_square != selected_square:
-                    selected_square.occupant = old_square.occupant
-                    selected_square.occupant.setPosition((selected_square.x, selected_square.y))
-                    old_square.occupant = None
-                    self.change_turn()
+                possible_moves = self.board.getPosibleMove(old_square.pos, self.turn)
+                # check selected square is possible
+                if selected_square in possible_moves:
+                    # check if the player select the old square
+                    if old_square != selected_square:
+                        if type(old_square.occupant) is Pieces.Pawn:
+                            old_square.occupant.first_move = False
+                        # change squares
+                        selected_square.occupant = old_square.occupant
+                        selected_square.occupant.setPosition(selected_square.pos)
+                        old_square.occupant = None
+                        self.change_turn()
                 self.player_moving = False
             else:
                 # CLICK
