@@ -94,18 +94,14 @@ class Board:
     def getPosibleMove(self, pos: tuple, turn):
         occupant: Pieces = self.findSquare(pos).occupant
         possible_moves = []
-        
-        for function, step in occupant.move.items():
-            is_block = False
-            if function == 'LShape':
-                for pos in occupant.getMove(L_shape=True):
-                    square = self.findSquare(pos)
-                    if square.occupant is None or square.occupant.color != turn:
-                        possible_moves.append(self.findSquare(pos))
-            else:
+        possible_eats = []
+
+        if type(occupant) is Pieces.Pawn:
+            for function, step in occupant.move.items():
+                is_block = False
                 f = getattr(occupant, function)
                 range_x, range_y = f(step)
-                moves = occupant.getMove(range_x, range_y)
+                moves: list = occupant.getMove(range_x, range_y)
                 for pos in moves:
                     if is_block:
                         break
@@ -113,11 +109,52 @@ class Board:
                     if square.occupant is None:
                         possible_moves.append(square)
                     else:
+                        is_block = True
+            for function, step in occupant.eat.items():
+                is_block = False
+                f = getattr(occupant, function)
+                range_x, range_y = f(step)
+                moves: list = occupant.getMove(range_x, range_y)
+                for pos in moves:
+                    if is_block:
+                        break
+                    square = self.findSquare(pos)
+                    if square.occupant is None:
+                        is_block = True
+                    else:
                         if square.occupant.color == turn:
                             is_block = True
                         else:
-                            possible_moves.append(square)
+                            possible_eats.append(square)
                             is_block = True
+        else:
+            for function, step in occupant.move.items():
+                is_block = False
+                if function == 'LShape':
+                    for pos in occupant.getMove(L_shape=True):
+                        square = self.findSquare(pos)
+                        if square.occupant is None:
+                            possible_moves.append(square)
+                        elif square.occupant.color != turn:
+                            possible_eats.append(square)
+                else:
+                    f = getattr(occupant, function)
+                    range_x, range_y = f(step)
+                    moves: list = occupant.getMove(range_x, range_y)
+
+                    for pos in moves:
+                        if is_block:
+                            break
+                        square = self.findSquare(pos)
+                        if square.occupant is None:
+                            possible_moves.append(square)
+                        else:
+                            if square.occupant.color == turn:
+                                is_block = True
+                            else:
+                                possible_eats.append(square)
+                                is_block = True
+        possible_moves.extend(possible_eats)
         return possible_moves
 
     def __str__(self):
