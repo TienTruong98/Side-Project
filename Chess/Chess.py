@@ -17,8 +17,8 @@ if __name__ == '__main__':
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.MOUSEBUTTONDOWN:
-                pos = pygame.mouse.get_pos()
-                game.select(pos)
+                screen_pos = pygame.mouse.get_pos()
+                game.select(screen_pos)
         screen.fill((0, 0, 0))
         game.board.draw(screen)
         game.board.drawSquare(screen, pygame.mouse.get_pos())
