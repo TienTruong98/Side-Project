@@ -91,7 +91,7 @@ class Board:
                 return square
         return None
 
-    def getPosibleMove(self, pos: tuple, turn):
+    def getPossibleMove(self, pos: tuple, turn):
         def KnightMove():
             for pos in occupant.getMove(L_shape=True):
                 square = self.findSquare(pos)
@@ -142,14 +142,18 @@ class Board:
                             possible_eats.append(square)
                             is_block = True
 
-            for function, step in getattr(occupant, action).items():
-                f = getattr(occupant, function)
-                range_x, range_y = f(step)
-                moves: list = occupant.getMove(range_x, range_y)
-                f = eval(condition)
-                f(moves)
 
-        occupant: Pieces = self.findSquare(pos).occupant
+            # get possible square in piece's directions
+            for direction, step in getattr(occupant, action).items():
+                f = getattr(occupant, direction)
+                range_x, range_y = f(step)
+                moves = occupant.getMove(range_x, range_y)
+                # choose suitable square
+                choose = eval(condition)
+                choose(moves)
+
+        current_square = self.findSquare(pos)
+        occupant: Pieces = current_square.occupant
         possible_moves = []
         possible_eats = []
         if type(occupant) is Pieces.Knight:
