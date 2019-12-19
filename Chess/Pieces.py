@@ -13,14 +13,16 @@ class Piece:
         self.y = y
 
     def getMove(self, x_range: list = [], y_range: list = [], L_shape=False):
+        moves = []
         if not L_shape:
             for x, y in zip(x_range, y_range):
                 if chr(x) in self.X_axis and y in self.Y_axis:
-                    yield chr(x), y
+                    moves.append((chr(x), y))
         else:
             for x, y in self.LShape():
                 if chr(x) in self.X_axis and y in self.Y_axis:
-                    yield chr(x), y
+                    moves.append((chr(x), y))
+        return moves
 
     def North(self, step):
 
@@ -211,6 +213,13 @@ class Pawn(Piece):
             return {
                 'North': 1,
             }
+
+    @property
+    def eat(self):
+        return {
+            'NorthEast': 1,
+            'NorthWest': 1,
+        }
 
 
 if __name__ == '__main__':
