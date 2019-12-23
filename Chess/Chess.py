@@ -25,6 +25,7 @@ if __name__ == '__main__':
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.MOUSEBUTTONDOWN:
+                # if the game is done: do not allow clicking
                 if game.status:
                     screen_pos = pygame.mouse.get_pos()
                     game.select(screen_pos)
