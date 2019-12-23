@@ -6,8 +6,8 @@ import Chess.Player as Player
 class Game:
     def __init__(self):
         self.board = Board.Board()
-        self.player1 = Player.Player('black')
-        self.player2 = Player.Player('white')
+        #self.player1 = Player.Player('black')
+        #self.player2 = Player.Player('white')
         self.turn = 'white'
         self.player_moving = False
         self.status = True
@@ -71,6 +71,7 @@ class Game:
             self.status = False
             self.winner = self.turn
 
+    # if it's the bot turn and after the bot has choose the
 
 if __name__ == '__main__':
     game = Game()
