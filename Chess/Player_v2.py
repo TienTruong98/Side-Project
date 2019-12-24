@@ -21,6 +21,7 @@ class Players:
                     possible_moves.append(square)
                 elif square.occupant not in self.pieces:
                     possible_eats.append(square)
+
         def getMove(action, condition):
             def pawnMoveCondition(moves):
                 is_block = False
@@ -88,6 +89,8 @@ class Players:
             if p == piece:
                 self.pieces.pop(index)
                 return
+
+
 class Human(Players):
     def __init__(self, color):
         Players.__init__(self, color, [])
@@ -121,14 +124,18 @@ class Human(Players):
                 if next_square in possible_move:
                     return self.old_square, next_square
             return self.old_square, self.old_square
+
+
 import random
+
 
 class Bot(Players):
     def __init__(self, color):
         Players.__init__(self, color, [])
+
     def chooseMove(self):
         possible_move = []
-        while len(possible_move)==0:
+        while len(possible_move) == 0:
             self.moving_piece = random.choice(self.pieces)
             possible_move = self.getPossibleMove()
         move = random.choice(possible_move)
@@ -137,3 +144,7 @@ class Bot(Players):
         self.moving_piece = None
         return old_square, new_square
 
+    def minimax(self):
+        moves = []
+        for piece in self.pieces:
+            possible_moces = self.getPossibleMove()
