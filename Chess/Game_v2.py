@@ -10,10 +10,11 @@ class Game:
         self.player1 = Player.Human('black') if player['black'] == 'human' else Player.Bot('black')
         self.player2 = Player.Human('white') if player['white'] == 'human' else Player.Bot('white')
         self.turn = 'player1'
-        self.player_moving = False
+        self.player_is_moving = False
         self.moving_piece = None
         self.status = True
         self.winner = None
+        self.history = []
 
     def setUp(self):
         colors = {'white': [1, 2], 'black': [8, 7]}
@@ -46,27 +47,57 @@ class Game:
         self.player2.opponent = self.player1
 
     def clickDetection(self, screen_pos):
+        # the game will detect the click action and assign the suitable task
         pos = self.board.getChessPos(screen_pos)
         # check if pos is in chess square
         if pos is None:
             return
         player = getattr(self, self.turn)
-        # check if player select right color
+
         # check if it is human turn
         if type(player) is Player.Human:
-            if self.player_moving:
-                has_moved = player.drop(pos)
-                self.moving_piece = None
-                self.player_moving = False
-                if has_moved:
+            if self.player_is_moving:
+                # if there is a player who is moving a piece and just clicked on the board: drop the piece
+                old_square, next_square = player.drop(pos)
+                # compare the player old square and new square
+                if old_square != next_square:
+                    if next_square.occupant is not None:
+                        player = self.player1 if self.turn == 'player2' else self.player2
+                        player.removePiece(next_square.occupant)
+                    self.writeHistory(old_square, next_square)  # write history
+                    self.isOver(next_square)  # check if the game is over
+                    next_square.occupant = self.moving_piece  # move the piece to the new square
+                    self.moving_piece.pos = next_square.pos  # update the piece position
                     self.changeTurn()
+                else:
+                    old_square.occupant = self.moving_piece  # return the piece to its original place
+                self.moving_piece = None
+                self.player_is_moving = False
+
             else:
+                # if no one is moving a piece and the player just clicked on the board: pick the piece
                 self.moving_piece = player.click(pos)
-                if self.moving_piece:
-                    self.player_moving = True
+                if self.moving_piece is not None:
+                    self.player_is_moving = True
 
     def changeTurn(self):
         self.turn = 'player2' if self.turn == 'player1' else 'player1'
+
+    def isOver(self, square):
+        # check that square is a King
+        if type(square.occupant) is Pieces.King:
+            self.status = False
+            self.winner = self.turn
+
+    def writeHistory(self, old_square, next_square):
+        self.history.append(f'{self.moving_piece} {str(old_square)} {str(next_square)}')
+
+    def checkPawn(self):
+        if type(self.moving_piece) is Pieces.Pawn:  # set pawn first move
+            self.moving_piece.first_move = False
+
+    def botMove(self):
+        pass
 
 
 if __name__ == '__main__':
