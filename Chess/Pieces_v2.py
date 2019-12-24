@@ -142,6 +142,7 @@ class King(Piece):
         self.img = pygame.image.load('Pieces/' + color + '_king' + '.png').convert()
         self.img = pygame.transform.scale(self.img, (self.size, self.size))
         self.img.set_colorkey((255, 255, 255))
+        self.value = 10000
         self.move = {
             'North': 1,
             'NorthEast': 1,
@@ -171,7 +172,7 @@ class Queen(Piece):
         self.img = pygame.transform.scale(self.img, (self.size, self.size))
         # remove white background
         self.img.set_colorkey((255, 255, 255))
-
+        self.value = 9
         self.move = {
             'North': 7,
             'NorthEast': 7,
@@ -191,7 +192,7 @@ class Rook(Piece):
         self.img = pygame.transform.scale(self.img, (self.size, self.size))
         # remove white background
         self.img.set_colorkey((255, 255, 255))
-
+        self.value = 5
         self.move = {
             'North': 7,
             'East': 7,
@@ -207,6 +208,7 @@ class Knight(Piece):
         self.img = pygame.transform.scale(self.img, (self.size, self.size))
         # remove white background
         self.img.set_colorkey((255, 255, 255))
+        self.value = 3
         self.move = {
             'LShape': 0
         }
@@ -219,6 +221,7 @@ class Bishop(Piece):
         self.img = pygame.transform.scale(self.img, (self.size, self.size))
         # remove white background
         self.img.set_colorkey((255, 255, 255))
+        self.value = 3
         self.move = {
             'NorthEast': 7,
             'SouthEast': 7,
@@ -235,6 +238,7 @@ class Pawn(Piece):
         # remove white background
         self.img.set_colorkey((255, 255, 255))
         self.first_move = True
+        self.value = 1
 
     @property
     def move(self):
