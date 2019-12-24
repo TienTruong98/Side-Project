@@ -20,27 +20,6 @@ def drawBoard(board: Board.Board, board_pos: tuple):
             screen.blit(square.occupant.img, (x, y))
 
 
-def botMove():
-    player = getattr(game, game.turn)
-    if type(player) is Player.Bot:
-        old, new = player.chooseMove()
-        print(old, new)
-        game.moving_piece = old.occupant
-        game.checkPawn()
-        game.writeHistory(old, new)
-        old.occupant = None
-        game.changeTurn()
-        drawBoard(game.board, (0, 0))
-        screen.blit(game.moving_piece.img, new.left_up_corner)
-        new.occupant = game.moving_piece
-        game.moving_piece.pos = new.pos
-        game.moving_piece = None
-
-
-
-
-
-
 if __name__ == '__main__':
     pygame.init()
 
@@ -64,12 +43,14 @@ if __name__ == '__main__':
                     game.clickDetection(screen_pos)
         screen.fill((0, 0, 0))
         drawBoard(game.board, (0, 0))
-        # draw moving pieces
-        if game.moving_piece is not None:
-            screen.blit(game.moving_piece.img, pygame.mouse.get_pos())
-        if not game.status:
+        if game.status:
+            # draw moving pieces
+            if game.moving_piece is not None:
+                screen.blit(game.moving_piece.img, pygame.mouse.get_pos())
+            # check if its bot turn
+            piece, pos = game.botMove()
+            if piece is not None and pos is not None:
+                screen.blit(piece.img, pos)
+        else:
             endGame()
         pygame.display.update()
-        if game.status:
-            botMove()
-
