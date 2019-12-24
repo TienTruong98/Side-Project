@@ -91,13 +91,13 @@ class Game:
 
     def move(self, old_square, next_square):
         # move the piece from old_square to next_square
-        if next_square.occupant is not None: # check if the player eat a piece
+        if next_square.occupant is not None:  # check if the player eat a piece
             opponent = self.player1 if self.turn == 'player2' else self.player2
             opponent.removePiece(next_square.occupant)
             self.isOver(next_square)  # check if the game is over
-
+            player = getattr(self, self.turn)
+            player.score += next_square.occupant.value
         self.writeHistory(old_square, next_square)  # write history
-
         next_square.occupant = self.moving_piece  # move the piece to the new square
         self.moving_piece.pos = next_square.pos  # update the piece position
 
