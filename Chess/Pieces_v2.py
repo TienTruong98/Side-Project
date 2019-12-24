@@ -1,6 +1,11 @@
 import pygame
 
 
+class Direction:
+    def __init__(self, name):
+        self.name = name
+
+
 class Piece:
     def __init__(self, color: str, pos: tuple, size):
         self.color = color
@@ -14,21 +19,26 @@ class Piece:
     def __str__(self):
         return f'{self.color} {self.name}'
 
-    def getMove(self, x_range: list = None, y_range: list = None, L_shape=False):
-        if not x_range or not y_range:
-            x_range = []
-            y_range = []
+    def getMove(self, direction=None, step=None, L_shape=False):
+        if direction is not None and step is not None:
+            f = getattr(self, direction)  # get the direction method
+            x_range, y_range = f(step)
+        else:
+            x_range, y_range = [], []
         moves = []
         if not L_shape:
             for x, y in zip(x_range, y_range):
                 if x in range(1, 9) and y in range(1, 9):
                     moves.append((x, y))
         else:
+            # LShape return a very different list of movements
             for x, y in self.LShape():
                 if x in range(1, 9) and y in range(1, 9):
                     moves.append((x, y))
         return moves
 
+    # from the 'position' move 'step' moves in that 'direction'
+    # return x_range, y_range: x,y coordinate with the move
     def North(self, step):
         x, y = self.pos
         if self.color == 'black':
@@ -106,6 +116,7 @@ class Piece:
         return x_range, y_range
 
     def LShape(self):
+        # return all the possible position of L shape
         moves = [
             (1, 2),
             (2, 1),
@@ -121,6 +132,8 @@ class Piece:
             next_x, next_y = value
             moves[index] = (x + next_x, y + next_y)
         return moves
+
+
 
 
 class King(Piece):
@@ -221,7 +234,6 @@ class Pawn(Piece):
         self.img = pygame.transform.scale(self.img, (self.size, self.size))
         # remove white background
         self.img.set_colorkey((255, 255, 255))
-
         self.first_move = True
 
     @property
@@ -237,6 +249,7 @@ class Pawn(Piece):
 
     @property
     def eat(self):
+        # pawn can eat diagonally if there is an opponent piece
         return {
             'NorthEast': 1,
             'NorthWest': 1,
@@ -247,14 +260,5 @@ if __name__ == '__main__':
     pygame.init()
     screen = pygame.display.set_mode((0, 0))
     knight = Knight('white', (1, 1), 60)
-    print(knight.move)
-    for direction, step in knight.move.items():
-        if direction == 'LShape':
-            for x in knight.getMove(L_shape=True):
-                print(x)
-        else:
-            f = getattr(knight, direction)
-            range_x, range_y = f(step)
-            print(f.__name__)
-            for x in knight.getMove(range_x, range_y):
-                print(x)
+    king = Knight('white', (1, 1), 60)
+    print(king == knight)
