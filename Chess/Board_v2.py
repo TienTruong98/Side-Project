@@ -13,7 +13,7 @@ class Square:
     def __str__(self):
         x = chr(self.pos[0] + 64)
         y = self.pos[1]
-        return f"Square ({x}, {y}): {self.occupant} "
+        return f"{x}{y}"
 
 
 class Board:
@@ -72,6 +72,7 @@ class Board:
             if square_x <= x <= square_x + square.size and square_y <= y <= square_y + square.size:
                 return square.pos
         return None
+
 
 
 
