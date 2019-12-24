@@ -9,7 +9,7 @@ class Game:
         self.board = Board.Board(size)
         self.player1 = Player.Human('black') if player['black'] == 'human' else Player.Bot('black')
         self.player2 = Player.Human('white') if player['white'] == 'human' else Player.Bot('white')
-        self.turn = 'player1'
+        self.turn = 'player2'
         self.player_is_moving = False
         self.moving_piece = None
         self.status = True
@@ -61,14 +61,7 @@ class Game:
                 old_square, next_square = player.drop(pos)
                 # compare the player old square and new square
                 if old_square != next_square:
-                    if next_square.occupant is not None:
-                        player = self.player1 if self.turn == 'player2' else self.player2
-                        player.removePiece(next_square.occupant)
-                    self.writeHistory(old_square, next_square)  # write history
-                    self.isOver(next_square)  # check if the game is over
-                    next_square.occupant = self.moving_piece  # move the piece to the new square
-                    self.moving_piece.pos = next_square.pos  # update the piece position
-                    self.changeTurn()
+                    self.move(old_square, next_square)
                 else:
                     old_square.occupant = self.moving_piece  # return the piece to its original place
                 self.moving_piece = None
@@ -96,8 +89,35 @@ class Game:
         if type(self.moving_piece) is Pieces.Pawn:  # set pawn first move
             self.moving_piece.first_move = False
 
+    def move(self, old_square, next_square):
+        # move the piece from old_square to next_square
+        if next_square.occupant is not None: # check if the player eat a piece
+            opponent = self.player1 if self.turn == 'player2' else self.player2
+            opponent.removePiece(next_square.occupant)
+            self.isOver(next_square)  # check if the game is over
+
+        self.writeHistory(old_square, next_square)  # write history
+
+        next_square.occupant = self.moving_piece  # move the piece to the new square
+        self.moving_piece.pos = next_square.pos  # update the piece position
+
+        self.changeTurn()
+
     def botMove(self):
-        pass
+        player = getattr(self, self.turn)
+        if type(player) is Player.Bot:
+            old_square, next_square = player.chooseMove()  # bot will make a move
+            # remeber bot moving piece
+            self.moving_piece = old_square.occupant
+            piece = old_square.occupant
+            # delete moving piece on board
+            old_square.occupant = None
+            # move the piece
+            self.move(old_square, next_square)
+            self.moving_piece = None
+            return piece, next_square.left_up_corner
+        else:
+            return None, None
 
 
 if __name__ == '__main__':
