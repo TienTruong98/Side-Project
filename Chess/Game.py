@@ -8,7 +8,7 @@ class Game:
         self.board = Board.Board()
         #self.player1 = Player.Player('black')
         #self.player2 = Player.Player('white')
-        self.turn = 'white'
+        self.turn = 'black'
         self.player_moving = False
         self.status = True
         self.winner = None
